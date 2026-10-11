@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AquaGuard - Smart Water Pump</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- ================= Sidebar ================= -->
+    <aside class="sidebar">
+
+        <div class="logo">
+            <div class="logo-icon">💧</div>
+            <div>
+                <h2>AquaGuard</h2>
+                <span>Smart Water System</span>
+            </div>
+        </div>
+
+        <nav>
+            <a class="menu active" href="#dashboard" data-view="dashboard"><span></span>Dashboard</a>
+            <a class="menu" href="#monitor"   data-view="monitor"><span></span>Water Monitor</a>
+            <a class="menu" href="#analytics" data-view="analytics"><span></span>Analytics</a>
+            <a class="menu" href="#forecast"  data-view="forecast"><span></span>Forecast</a>
+            <a class="menu" href="#alerts"    data-view="alerts"><span></span>Alerts <b id="menuBadge">0</b></a>
+            <a class="menu" href="#settings"  data-view="settings"><span></span>Settings</a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <div class="connection">
+                <span class="online-dot" id="loraDot"></span>
+                <div>
+                    <strong id="loraText">LoRa Connected</strong>
+                    <small id="loraSub">Last update 0 sec ago</small>
+                </div>
+            </div>
+        </div>
+
+    </aside>
+
+
+    <!-- ================= Main ================= -->
+    <main class="main">
+
+        <header class="header">
+            <div>
+                <h1 id="pageTitle">Dashboard</h1>
+                <p id="pageSub">ภาพรวมสถานีปั๊มน้ำ</p>
+            </div>
+
+            <div class="header-right">
+                <button class="notification" id="bellBtn" title="การแจ้งเตือน" aria-label="การแจ้งเตือน">
+                    🔔
+                    <span id="bellBadge">0</span>
+                </button>
+
+                <div class="user">
+                    <div class="avatar">A</div>
+                    <div>
+                        <strong>Admin</strong>
+                        <small>Administrator</small>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- สถานะระบบ (แสดงทุกหน้า) -->
+        <section class="system-status" id="sysStatus">
+            <div>
+                <span class="status-dot" id="sysDot"></span>
+                <strong id="sysText">ระบบทำงานปกติ</strong>
+                <p id="sysSub">สถานีปั๊มน้ำ #01</p>
+            </div>
+            <div class="status-right">
+                <span id="sysLora">● LoRa Connected</span>
+                <span id="sysTime">อัปเดตล่าสุด --:--:--</span>
+            </div>
+        </section>
+
+
+        <!-- ========================================================= -->
+        <!-- VIEW: DASHBOARD                                           -->
+        <!-- ========================================================= -->
+        <div class="view active" id="view-dashboard">
+
+            <section class="cards">
+
+                <div class="card">
+                    <div class="card-top"><span>ระดับน้ำ</span><div class="icon blue"></div></div>
+                    <div class="value"><span class="num" id="lvVal">0</span><span>%</span></div>
+                    <div class="progress"><div id="lvBar" style="width:0%"></div></div>
+                    <small id="lvNote">ปกติ · Min 30% / Max 90%</small>
+                </div>
+
+                <div class="card">
+                    <div class="card-top"><span>อัตราการไหล</span><div class="icon green"></div></div>
+                    <div class="value"><span class="num" id="flowVal">0</span> <span>L/min</span></div>
+                    <div class="card-status good" id="flowSt">● ปกติ</div>
+                    <small id="flowSub">เข้าถัง 0 L/min</small>
+                </div>
+
+                <div class="card">
+                    <div class="card-top"><span>แรงดันน้ำ</span><div class="icon purple"></div></div>
+                    <div class="value"><span class="num" id="pressVal">0</span> <span>Bar</span></div>
+                    <div class="card-status good" id="pressSt">● ปกติ</div>
+                    <small>Pressure Sensor</small>
+                </div>
+
+                <div class="card">
+                    <div class="card-top"><span>กระแสไฟฟ้า</span><div class="icon orange"></div></div>
+                    <div class="value"><span class="num" id="ampVal">0</span> <span>A</span></div>
+                    <div class="card-status good" id="ampSt">● ปกติ</div>
+                    <small>Current Sensor</small>
+                </div>
+
+            </section>
+
+            <section class="grid">
+
+                <div class="panel pump-panel">
+                    <div class="panel-header">
+                        <div>
+                            <h2>สถานะปั๊มน้ำ</h2>
+                            <p>Water Pump #01</p>
+                        </div>
+                        <span class="pump-on" id="pumpBadge">● RUNNING</span>
+                    </div>
+
+                    <div class="pump-content">
+                        <div class="pump-circle" id="pumpCircle">
+                            <div class="pump-icon"></div>
+                            <strong id="pumpOnOff">ON</strong>
+                            <small id="pumpOnOffTh">ทำงานอยู่</small>
+                        </div>
+
+                        <div class="pump-info">
+                            <div><span>โหมดการทำงาน</span><strong id="pumpMode">Automatic</strong></div>
+                            <div><span id="runLabel">ทำงานมาแล้ว</span><strong id="pumpRun">--:--:--</strong></div>
+                            <div><span>เปิดปั๊มล่าสุด</span><strong id="pumpLastOn">--:--:--</strong></div>
+
+                            <button class="stop-button" id="pumpBtn" onclick="togglePump()">⏹ หยุดปั๊มน้ำ</button>
+                            <button class="ghost-button" id="modeBtn" onclick="setMode('auto')">⟳ กลับสู่โหมดอัตโนมัติ</button>
+                            <button class="reset-button" id="resetBtn" onclick="resetFault()" hidden>ตรวจสอบแล้ว – รีเซ็ตความผิดปกติ</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <div>
+                            <h2>ระดับน้ำในถัง</h2>
+                            <p>Real-time water level</p>
+                        </div>
+                        <span class="normal" id="tankBadge">Normal</span>
+                    </div>
+
+                    <div class="tank">
+                        <div class="water" id="tankWater" style="height:0%"><span id="tankPct">0%</span></div>
+                        <div class="mark mark-max" id="markMax">MAX</div>
+                        <div class="mark mark-min" id="markMin">MIN</div>
+                    </div>
+
+                    <div class="tank-label"><span>0%</span><span>50%</span><span>100%</span></div>
+                </div>
+
+            </section>
+
+            <section class="panel chart-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>ปริมาณการใช้น้ำ</h2>
+                        <p id="dashChartSub">Water consumption history</p>
+                    </div>
+                    <select id="period">
+                        <option value="today">วันนี้</option>
+                        <option value="7">7 วันที่ผ่านมา</option>
+                        <option value="30">30 วันที่ผ่านมา</option>
+                    </select>
+                </div>
+                <div class="chart-box"><canvas id="waterChart"></canvas></div>
+            </section>
+
+            <section class="bottom-grid">
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <div>
+                            <h2>การพยากรณ์</h2>
+                            <p>ปริมาณการใช้น้ำวันพรุ่งนี้</p>
+                        </div>
+                        <a class="link" href="#forecast">รายละเอียด</a>
+                    </div>
+
+                    <div class="forecast">
+                        <div class="forecast-value"><span id="fcTotal">0</span> <span>Liter</span></div>
+                        <div class="forecast-up" id="fcDelta">↑ 0%</div>
+                    </div>
+                    <div class="forecast-text" id="fcText"></div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <div>
+                            <h2>การแจ้งเตือน</h2>
+                            <p>เหตุการณ์ล่าสุด</p>
+                        </div>
+                        <a class="link" href="#alerts">ดูทั้งหมด</a>
+                    </div>
+                    <div class="alert-list" id="dashAlerts"></div>
+                </div>
+
+            </section>
+        </div>
+
+
+        <!-- ========================================================= -->
+        <!-- VIEW: WATER MONITOR                                       -->
+        <!-- ========================================================= -->
+        <div class="view" id="view-monitor">
+
+            <section class="grid grid-even">
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <div><h2>ค่าจากเซนเซอร์ (Real-time)</h2><p>อัปเดตทุก 2 วินาที (เดโม)</p></div>
+                    </div>
+                    <table class="table">
+                        <thead><tr><th>เซนเซอร์</th><th>ตำแหน่ง</th><th class="r">ค่า</th><th>สถานะ</th></tr></thead>
+                        <tbody id="sensorTable"></tbody>
+                    </table>
+
+                    <div class="balance" id="balanceBox"></div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <div><h2>แนวโน้มล่าสุด</h2><p>ระดับน้ำ (%) และอัตราการไหล (L/min)</p></div>
+                    </div>
+                    <div class="chart-box tall"><canvas id="liveChart"></canvas></div>
+                </div>
+
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div><h2>ประวัติการทำงานของปั๊มน้ำ</h2><p>บันทึกวัน เวลา และผู้สั่งงาน</p></div>
+                </div>
+                <div class="scroll">
+                    <table class="table">
+                        <thead><tr><th>เวลา</th><th>เหตุการณ์</th><th>สั่งงานโดย</th><th class="r">ระยะเวลาทำงาน</th></tr></thead>
+                        <tbody id="pumpLogTable"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+
+        <!-- ========================================================= -->
+        <!-- VIEW: ANALYTICS                                           -->
+        <!-- ========================================================= -->
+        <div class="view" id="view-analytics">
+
+            <section class="cards">
+                <div class="card"><div class="card-top"><span>ใช้น้ำรวม</span><div class="icon blue">💧</div></div><div class="value"><span class="num" id="anTotal">0</span> <span>L</span></div><small id="anTotalSub"></small></div>
+                <div class="card"><div class="card-top"><span id="anAvgLabel">เฉลี่ยต่อวัน</span><div class="icon green">📈</div></div><div class="value"><span class="num" id="anAvg">0</span> <span>L</span></div><small>ค่าเฉลี่ยในช่วงที่เลือก</small></div>
+                <div class="card"><div class="card-top"><span>ช่วงใช้น้ำสูงสุด</span><div class="icon orange">🔝</div></div><div class="value"><span class="num" id="anPeak">-</span></div><small id="anPeakSub"></small></div>
+                <div class="card"><div class="card-top"><span>ปั๊มทำงานรวม (ประมาณ)</span><div class="icon purple">⏱</div></div><div class="value"><span class="num" id="anRun">0</span> <span>ชม.</span></div><small>จากปริมาณน้ำ ÷ อัตราไหลปั๊ม</small></div>
+            </section>
+
+            <section class="panel chart-panel">
+                <div class="panel-header">
+                    <div><h2>การใช้น้ำย้อนหลัง</h2><p>เลือกช่วงเวลาและดาวน์โหลดข้อมูลได้</p></div>
+                    <div class="toolbar">
+                        <div class="seg" id="anSeg">
+                            <button class="on" data-p="today">วันนี้</button>
+                            <button data-p="7">7 วัน</button>
+                            <button data-p="30">30 วัน</button>
+                        </div>
+                        <button class="ghost-button sm" onclick="exportCSV()">⬇ CSV</button>
+                    </div>
+                </div>
+                <div class="chart-box tall"><canvas id="anChart"></canvas></div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header"><div><h2>ตารางข้อมูล</h2><p id="anTableSub"></p></div></div>
+                <div class="scroll">
+                    <table class="table">
+                        <thead><tr><th id="anColLabel">ช่วงเวลา</th><th class="r">ปริมาณ (L)</th><th class="r">เทียบค่าเฉลี่ย</th></tr></thead>
+                        <tbody id="anTable"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+
+        <!-- ========================================================= -->
+        <!-- VIEW: FORECAST                                            -->
+        <!-- ========================================================= -->
+        <div class="view" id="view-forecast">
+
+            <section class="cards cards-3">
+                <div class="card"><div class="card-top"><span>พยากรณ์พรุ่งนี้</span><div class="icon blue">🔮</div></div><div class="value"><span class="num" id="f2Total">0</span> <span>L</span></div><div class="card-status" id="f2Delta"></div><small>เทียบค่าเฉลี่ย 7 วันล่าสุด</small></div>
+                <div class="card"><div class="card-top"><span>ช่วงใช้น้ำสูงสุดพรุ่งนี้</span><div class="icon orange">🔝</div></div><div class="value"><span class="num" id="f2Peak">-</span></div><small>หน้าต่าง 4 ชั่วโมงที่ใช้น้ำมากที่สุด</small></div>
+                <div class="card"><div class="card-top"><span>ถังเก็บน้ำพอใช้หรือไม่</span><div class="icon green">🛢</div></div><div class="value"><span class="num" id="f2Cap">-</span></div><small id="f2CapSub"></small></div>
+            </section>
+
+            <section class="grid grid-even">
+                <div class="panel">
+                    <div class="panel-header"><div><h2>พยากรณ์รายชั่วโมง – พรุ่งนี้</h2><p>เทียบกับวันนี้ (ใช้จริง)</p></div></div>
+                    <div class="chart-box tall"><canvas id="fcChart"></canvas></div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header"><div><h2>พยากรณ์ 7 วันข้างหน้า</h2><p>รวมต่อวัน (ลิตร)</p></div></div>
+                    <table class="table">
+                        <thead><tr><th>วัน</th><th class="r">คาดการณ์ (L)</th><th class="r">เทียบค่าเฉลี่ย</th></tr></thead>
+                        <tbody id="fcTable"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel note-panel">
+                <h2>วิธีพยากรณ์ในเดโมนี้</h2>
+                <p>ใช้ค่าเฉลี่ยของ “ชั่วโมงเดียวกัน / วันเดียวกันของสัปดาห์” จากข้อมูลย้อนหลัง 28 วัน แล้วปรับด้วยแนวโน้ม (ค่าเฉลี่ย 7 วันล่าสุด เทียบกับ 7 วันก่อนหน้า) ใช้เป็น baseline สำหรับเทียบกับโมเดลจริงในโครงงาน เช่น ARIMA, Prophet หรือ LSTM ที่ฝึกด้วย Python จากข้อมูลในฐานข้อมูล</p>
+            </section>
+        </div>
+
+
+        <!-- ========================================================= -->
+        <!-- VIEW: ALERTS                                              -->
+        <!-- ========================================================= -->
+        <div class="view" id="view-alerts">
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div><h2>การแจ้งเตือนทั้งหมด</h2><p id="alertSub"></p></div>
+                    <div class="toolbar">
+                        <div class="seg" id="alSeg">
+                            <button class="on" data-f="all">ทั้งหมด</button>
+                            <button data-f="open">ยังไม่รับทราบ</button>
+                        </div>
+                        <button class="ghost-button sm" onclick="ackAll()">รับทราบทั้งหมด</button>
+                    </div>
+                </div>
+                <div class="alert-list" id="alertFull"></div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header"><div><h2>เงื่อนไขการตรวจจับ</h2><p>ตามขอบเขตโครงงาน</p></div></div>
+                <div class="scroll">
+                    <table class="table">
+                        <thead><tr><th>ความผิดปกติ</th><th>เงื่อนไข</th><th>การดำเนินการ</th><th>เดโม</th></tr></thead>
+                        <tbody>
+                            <tr><td>ปั๊มทำงานแต่ไม่มีน้ำไหล (Dry Run)</td><td>ปั๊มเปิด และ Flow = 0 ต่อเนื่อง</td><td>หยุดปั๊ม + แจ้งเตือน</td><td>✔</td></tr>
+                            <tr><td>ระดับน้ำต่ำ / สูง</td><td>ต่ำกว่า Min หรือสูงกว่า Max</td><td>แจ้งเตือน</td><td>✔</td></tr>
+                            <tr><td>น้ำล้นถัง (Overflow)</td><td>ระดับน้ำ ≥ 97%</td><td>หยุดปั๊ม + แจ้งเตือน</td><td>✔</td></tr>
+                            <tr><td>ท่อแตก / น้ำรั่ว</td><td>Flow เข้า-ออกต่างกัน &gt; 25% หรือแรงดันตก</td><td>หยุดปั๊ม + แจ้งเตือน</td><td>✔</td></tr>
+                            <tr><td>ท่ออุดตัน</td><td>แรงดันสูง แต่ Flow ต่ำ</td><td>หยุดปั๊ม + แจ้งเตือน</td><td>✔</td></tr>
+                            <tr><td>กระแสไฟฟ้าเกิน</td><td>กระแส &gt; 12 A</td><td>หยุดปั๊ม + แจ้งเตือน</td><td>✔</td></tr>
+                            <tr><td>การเชื่อมต่อ LoRa ขัดข้อง</td><td>ไม่ได้รับข้อมูลจาก Gateway</td><td>แจ้งเตือน (ไม่สามารถสั่งปั๊มจากเว็บได้)</td><td>✔</td></tr>
+                            <tr><td>แรงดันไฟฟ้าผิดปกติ / ไฟขาดเฟส</td><td>ต้องมีเซนเซอร์แรงดันไฟฟ้า</td><td>–</td><td>ยังไม่จำลอง</td></tr>
+                            <tr><td>เซนเซอร์ชำรุด</td><td>ค่าผันผวนผิดปกติ / สัญญาณหลุด</td><td>–</td><td>ยังไม่จำลอง</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+
+        <!-- ========================================================= -->
+        <!-- VIEW: SETTINGS                                            -->
+        <!-- ========================================================= -->
+        <div class="view" id="view-settings">
+
+            <section class="grid grid-even">
+
+                <div class="panel">
+                    <div class="panel-header"><div><h2>การควบคุมปั๊มอัตโนมัติ</h2><p>กำหนดระดับน้ำสำหรับเปิดและปิดปั๊ม</p></div></div>
+
+                    <form id="limitForm" class="form" onsubmit="return saveLimits(event)">
+                        <label>เปิดปั๊มเมื่อระดับน้ำต่ำกว่า (Min %)
+                            <input type="number" id="inMin" min="5" max="90" required>
+                        </label>
+                        <label>ปิดปั๊มเมื่อระดับน้ำถึง (Max %)
+                            <input type="number" id="inMax" min="10" max="95" required>
+                        </label>
+                        <div class="form-msg" id="limitMsg"></div>
+                        <button class="primary-button" type="submit">บันทึกค่า</button>
+                    </form>
+
+                    <div class="form-row">
+                        <span>โหมดการทำงาน</span>
+                        <div class="seg" id="modeSeg">
+                            <button data-m="auto">อัตโนมัติ</button>
+                            <button data-m="manual">สั่งเอง</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header"><div><h2>การแจ้งเตือน</h2><p>ช่องทางที่ต้องการรับ</p></div></div>
+                    <div class="toggles">
+                        <label><input type="checkbox" checked> แจ้งเตือนบนเว็บ (Web)</label>
+                        <label><input type="checkbox" checked> แจ้งเตือนผ่าน LINE Notify</label>
+                        <label><input type="checkbox"> แจ้งเตือนผ่านอีเมล</label>
+                    </div>
+                    <p class="muted">ในเดโมนี้ช่องทาง LINE และอีเมลยังเป็นตัวเลือกตัวอย่าง</p>
+                </div>
+
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div><h2>ผู้ใช้งานระบบ</h2><p>เพิ่ม ลบ และกำหนดสิทธิ์</p></div>
+                </div>
+                <form class="inline-form" onsubmit="return addUser(event)">
+                    <input id="uName" placeholder="ชื่อผู้ใช้" required maxlength="30">
+                    <select id="uRole"><option value="user">ผู้ใช้งานทั่วไป</option><option value="admin">ผู้ดูแลระบบ</option></select>
+                    <button class="primary-button sm" type="submit">+ เพิ่มผู้ใช้</button>
+                </form>
+                <table class="table">
+                    <thead><tr><th>ชื่อผู้ใช้</th><th>สิทธิ์</th><th class="r">จัดการ</th></tr></thead>
+                    <tbody id="userTable"></tbody>
+                </table>
+            </section>
+
+            <section class="panel demo-panel">
+                <div class="panel-header"><div><h2>🧪 โหมดทดสอบ (เดโม)</h2><p>จำลองความผิดปกติเพื่อดูว่าระบบตรวจจับและแจ้งเตือนอย่างไร</p></div></div>
+                <div class="demo-buttons">
+                    <button onclick="inject('dry')">ปั๊มเดินแต่ไม่มีน้ำ</button>
+                    <button onclick="inject('leak')">ท่อรั่ว</button>
+                    <button onclick="inject('block')">ท่ออุดตัน</button>
+                    <button onclick="inject('over')">กระแสเกิน</button>
+                    <button onclick="inject('lora')">LoRa ขัดข้อง</button>
+                    <button class="ok" onclick="inject(null)">ล้างการจำลอง</button>
+                </div>
+                <p class="muted" id="injMsg">ยังไม่มีการจำลองความผิดปกติ</p>
+            </section>
+        </div>
+
+    </main>
+
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
